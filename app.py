@@ -281,6 +281,8 @@ def main():
                 st.caption("Strategy Filters")
                 use_trend = st.checkbox("Require Trend (SMA 200)", value=False, help="Only trade Long > SMA200, Short < SMA200")
                 use_volume = st.checkbox("Require Volume", value=False, help="Only trade if Volume > Vol SMA 20")
+                use_adx = st.checkbox("Require Strong Trend (ADX > 25)", value=False, help="Only trade if ADX > 25")
+                use_macd = st.checkbox("Require Momentum (MACD)", value=False, help="Only trade if MACD confirms direction")
             
             if st.button("🚀 Run Backtest", type="primary"):
                 with st.spinner("Running backtest..."):
@@ -292,7 +294,9 @@ def main():
                         use_dca=use_dca,
                         position_size_pct=position_size_pct,
                         use_trend_filter=use_trend,
-                        use_volume_filter=use_volume
+                        use_volume_filter=use_volume,
+                        use_adx_filter=use_adx,
+                        use_macd_filter=use_macd
                     )
                     
                     # Run backtest

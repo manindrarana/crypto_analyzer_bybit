@@ -9,7 +9,7 @@ class Backtester:
     Simulates trades on historical data and calculates performance metrics.
     """
     
-    def __init__(self, initial_capital=10000, use_dca=False, position_size_pct=100, use_trend_filter=False, use_volume_filter=False):
+    def __init__(self, initial_capital=10000, use_dca=False, position_size_pct=100, use_trend_filter=False, use_volume_filter=False, use_adx_filter=False, use_macd_filter=False):
         """
         Initialize backtester.
         
@@ -19,12 +19,16 @@ class Backtester:
             position_size_pct (float): Percentage of capital to use per trade (1-100)
             use_trend_filter (bool): Only trade with trend (SMA 200)
             use_volume_filter (bool): Only trade with high volume
+            use_adx_filter (bool): Only trade with strong trend (ADX > 25)
+            use_macd_filter (bool): Only trade with momentum alignment
         """
         self.initial_capital = initial_capital
         self.use_dca = use_dca
         self.position_size_pct = position_size_pct / 100
         self.use_trend_filter = use_trend_filter
         self.use_volume_filter = use_volume_filter
+        self.use_adx_filter = use_adx_filter
+        self.use_macd_filter = use_macd_filter
         
         # Results storage
         self.trades = []
@@ -153,7 +157,9 @@ class Backtester:
                     df_slice, 
                     current_price,
                     use_trend_filter=self.use_trend_filter,
-                    use_volume_filter=self.use_volume_filter
+                    use_volume_filter=self.use_volume_filter,
+                    use_adx_filter=self.use_adx_filter,
+                    use_macd_filter=self.use_macd_filter
                 )
                 
                 if setup:
