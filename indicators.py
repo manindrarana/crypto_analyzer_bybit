@@ -285,7 +285,7 @@ def calculate_confidence(df, setup):
         
     return min(score, 100), reasons
 
-def get_trade_setup(df, current_price):
+def get_trade_setup(df, current_price, use_trend_filter=False, use_volume_filter=False):
     """
     Generates trade setup (Entry, SL, TP, DCA).
     Returns dict or None.
@@ -328,6 +328,29 @@ def get_trade_setup(df, current_price):
     if not signal:
         return None
         
+    # --- Filters ---
+    
+    # 1. Trend Filter (SMA 200)
+    if use_trend_filter:
+        sma_200 = last_row.get('SMA_200')
+        if pd.isna(sma_200):
+            return None # Cannot determine trend
+            
+        if trade_type == "LONG" and current_price <= sma_200:
+            return None # Counter-trend
+        if trade_type == "SHORT" and current_price >= sma_200:
+            return None # Counter-trend
+            
+    # 2. Volume Filter (Volume > Volume SMA)
+    if use_volume_filter:
+        vol_sma = last_row.get('Vol_SMA_20')
+        volume = last_row.get('Volume')
+        
+        if pd.isna(vol_sma) or pd.isna(volume):
+            pass # Skip if data missing
+        elif volume <= vol_sma:
+            return None # Low volume
+            
     atr_val = last_row['ATR'] if not pd.isna(last_row['ATR']) else (current_price * 0.02)
     
     setup = {
