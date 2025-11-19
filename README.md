@@ -50,18 +50,12 @@ A powerful, real-time cryptocurrency analysis dashboard built with Streamlit tha
 
 ### Setup
 
-1. **Clone the repository**
-```bash
-git clone <your-repo-url>
-cd perosnal_bybit_crypto_analyzer
-```
-
-2. **Install dependencies**
+1. **Install dependencies**
 ```bash
 pip install -r requirements.txt
 ```
 
-3. **Run the application**
+2. **Run the application**
 ```bash
 streamlit run app.py
 ```
