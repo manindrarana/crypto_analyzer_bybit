@@ -36,6 +36,13 @@ A powerful, real-time cryptocurrency analysis dashboard built with Streamlit tha
 - **DCA Strategy**: 3 Dollar-Cost-Averaging levels for both Long and Short positions
 - **Confidence Scoring**: AI-powered confluence analysis (0-100%) with detailed reasoning
 
+### 🧪 Backtesting Engine
+- **Historical Simulation**: Test strategies on past data to verify performance
+- **Performance Metrics**: Win Rate, Profit Factor, Total Return, Max Drawdown
+- **Equity Curve**: Visual growth of capital over time
+- **Advanced Filters**: Trend (SMA 200), Volume, ADX, and MACD filters to refine strategy
+- **DCA Support**: Simulate Dollar-Cost Averaging logic in backtests
+
 ### 🎨 Professional UI
 - Dark mode optimized interface
 - Interactive Plotly charts with multiple subplots
@@ -88,12 +95,19 @@ The app will open in your default browser at `http://localhost:8501`
    - Note Entry, Stop Loss, and Take Profit prices
    - Review DCA levels for position averaging
 
+5. **Run Backtest**:
+   - Switch to the "Backtesting Engine" tab
+   - Configure initial capital, position size, and DCA settings
+   - Enable optional filters (Trend, Volume, ADX, MACD) to refine the strategy
+   - Click "Run Backtest" to see performance metrics and trade history
+
 ## 📁 Project Structure
 
 ```
 perosnal_bybit_crypto_analyzer/
 │
 ├── app.py                 # Main Streamlit application
+├── backtester.py          # Backtesting engine and logic
 ├── data_loader.py         # Bybit API data fetching functions
 ├── indicators.py          # Technical indicators and strategy logic
 ├── requirements.txt       # Python dependencies
@@ -159,7 +173,7 @@ This app uses **public Bybit API endpoints** and does not require API keys for b
 
 Planned features for future releases:
 
-- [ ] **Backtesting Engine**: Test strategies on historical data with win rate and profit factor
+- [x] **Backtesting Engine**: Test strategies on historical data with win rate and profit factor
 - [ ] **Multi-Symbol Screener**: Scan multiple coins simultaneously for high-confidence setups
 - [ ] **Alerts System**: Telegram/Email notifications for trade signals
 - [ ] **AI Market Summary**: LLM-powered market analysis and insights
