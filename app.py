@@ -283,6 +283,10 @@ def main():
                 use_volume = st.checkbox("Require Volume", value=False, help="Only trade if Volume > Vol SMA 20")
                 use_adx = st.checkbox("Require Strong Trend (ADX > 25)", value=False, help="Only trade if ADX > 25")
                 use_macd = st.checkbox("Require Momentum (MACD)", value=False, help="Only trade if MACD confirms direction")
+                
+                st.caption("Risk Management")
+                use_tsl = st.checkbox("Use Trailing Stop Loss", value=False)
+                tsl_pct = st.slider("Trailing Stop (%)", min_value=0.5, max_value=5.0, value=1.0, step=0.1, disabled=not use_tsl)
             
             if st.button("🚀 Run Backtest", type="primary"):
                 with st.spinner("Running backtest..."):
@@ -296,7 +300,8 @@ def main():
                         use_trend_filter=use_trend,
                         use_volume_filter=use_volume,
                         use_adx_filter=use_adx,
-                        use_macd_filter=use_macd
+                        use_macd_filter=use_macd,
+                        trailing_stop_pct=tsl_pct if use_tsl else None
                     )
                     
                     # Run backtest

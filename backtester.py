@@ -9,7 +9,7 @@ class Backtester:
     Simulates trades on historical data and calculates performance metrics.
     """
     
-    def __init__(self, initial_capital=10000, use_dca=False, position_size_pct=100, use_trend_filter=False, use_volume_filter=False, use_adx_filter=False, use_macd_filter=False):
+    def __init__(self, initial_capital=10000, use_dca=False, position_size_pct=100, use_trend_filter=False, use_volume_filter=False, use_adx_filter=False, use_macd_filter=False, trailing_stop_pct=None):
         """
         Initialize backtester.
         
@@ -21,6 +21,7 @@ class Backtester:
             use_volume_filter (bool): Only trade with high volume
             use_adx_filter (bool): Only trade with strong trend (ADX > 25)
             use_macd_filter (bool): Only trade with momentum alignment
+            trailing_stop_pct (float): Trailing stop loss percentage (e.g., 1.0 for 1%)
         """
         self.initial_capital = initial_capital
         self.use_dca = use_dca
@@ -29,6 +30,7 @@ class Backtester:
         self.use_volume_filter = use_volume_filter
         self.use_adx_filter = use_adx_filter
         self.use_macd_filter = use_macd_filter
+        self.trailing_stop_pct = trailing_stop_pct
         
         # Results storage
         self.trades = []
@@ -66,6 +68,24 @@ class Backtester:
             
             # Check if we have an open position
             if open_position:
+                # --- Trailing Stop Logic ---
+                if self.trailing_stop_pct:
+                    if open_position['type'] == 'LONG':
+                        # Update highest price since entry
+                        open_position['highest_price'] = max(open_position.get('highest_price', -float('inf')), current_row['High'])
+                        # Calculate new SL
+                        new_sl = open_position['highest_price'] * (1 - self.trailing_stop_pct / 100)
+                        # Only move SL up
+                        open_position['sl'] = max(open_position['sl'], new_sl)
+                        
+                    elif open_position['type'] == 'SHORT':
+                        # Update lowest price since entry
+                        open_position['lowest_price'] = min(open_position.get('lowest_price', float('inf')), current_row['Low'])
+                        # Calculate new SL
+                        new_sl = open_position['lowest_price'] * (1 + self.trailing_stop_pct / 100)
+                        # Only move SL down
+                        open_position['sl'] = min(open_position['sl'], new_sl)
+
                 # 1. Check for DCA Execution (if enabled)
                 if self.use_dca and len(open_position['dca_levels']) > 0:
                     next_dca_price = open_position['dca_levels'][0]
@@ -184,6 +204,12 @@ class Backtester:
                         'signal': setup['Signal'],
                         'dca_levels': dca_levels
                     }
+                    
+                    # Initialize High/Low for Trailing Stop
+                    if setup['Type'] == 'LONG':
+                        open_position['highest_price'] = current_row['High']
+                    elif setup['Type'] == 'SHORT':
+                        open_position['lowest_price'] = current_row['Low']
             
             # Record equity at each step
             equity = self.current_capital
