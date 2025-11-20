@@ -57,6 +57,9 @@ def scan_market(symbols, interval, loopback=200, use_closed_candles=True):
                     'Entry': setup['Entry'],
                     'Stop Loss': setup['SL'],
                     'Take Profit': setup['TP'],
+                    'DCA 1': setup['DCA_1'],
+                    'DCA 2': setup['DCA_2'],
+                    'DCA 3': setup['DCA_3'],
                     'Confidence': confidence,
                     'Reasons': ", ".join(reasons)
                 })

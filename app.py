@@ -467,6 +467,9 @@ def main():
                                 'Entry': '${:.5f}',
                                 'Stop Loss': '${:.5f}',
                                 'Take Profit': '${:.5f}',
+                                'DCA 1': '${:.5f}',
+                                'DCA 2': '${:.5f}',
+                                'DCA 3': '${:.5f}',
                                 'Confidence': '{:.1f}%'
                             }),
                             use_container_width=True,
