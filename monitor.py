@@ -21,7 +21,6 @@ def main():
     # Load Config
     cfg = config.load_config()
     telegram_creds = config.get_telegram_creds()
-    email_creds = config.get_email_creds()
     
     symbols = cfg.get('symbols', [])
     interval = cfg.get('interval', '1h')
@@ -64,22 +63,6 @@ def main():
                                 logger.info(f"✅ Telegram alert sent for {row['Symbol']}")
                             else:
                                 logger.error(f"❌ Telegram failed for {row['Symbol']}: {err}")
-                                
-                        # Send Email
-                        if email_creds['sender'] and email_creds['password'] and email_creds['receiver']:
-                            subject = f"Trade Setup: {row['Symbol']} ({row['Type']})"
-                            success, err = alerts.send_email(
-                                "smtp.gmail.com", 587, 
-                                email_creds['sender'], 
-                                email_creds['password'], 
-                                email_creds['receiver'], 
-                                subject, 
-                                msg
-                            )
-                            if success:
-                                logger.info(f"✅ Email alert sent for {row['Symbol']}")
-                            else:
-                                logger.error(f"❌ Email failed for {row['Symbol']}: {err}")
                         
                         alerted_setups.add(setup_id)
             else:

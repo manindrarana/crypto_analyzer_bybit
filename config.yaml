@@ -19,10 +19,12 @@ symbols:
   - STRKUSDT
   - DASHUSDT
   - SUIUSDT
+  - 1000PEPEUSDT
+  - 1000SHIBUSDT
 
 # Timeframe Settings
 interval: "1h"
-loopback: 200
+loopback: 1000
 use_closed_candles: true
 
 # Monitor Settings

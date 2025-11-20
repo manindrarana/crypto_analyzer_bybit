@@ -32,12 +32,3 @@ def get_telegram_creds():
         "chat_id": os.getenv("TELEGRAM_CHAT_ID")
     }
 
-def get_email_creds():
-    """
-    Returns Email credentials from environment variables.
-    """
-    return {
-        "sender": os.getenv("EMAIL_SENDER"),
-        "password": os.getenv("EMAIL_PASSWORD"),
-        "receiver": os.getenv("EMAIL_RECEIVER")
-    }
