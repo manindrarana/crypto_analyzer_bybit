@@ -104,10 +104,19 @@ The app will open in your default browser at `http://localhost:8501`
    - Review DCA levels for position averaging
 
 5. **Run Backtest**:
-   - Switch to the "Backtesting Engine" tab
+   - Expand the \"Backtesting Engine\" section
    - Configure initial capital, position size, and DCA settings
    - Enable optional filters (Trend, Volume, ADX, MACD) to refine the strategy
-   - Click "Run Backtest" to see performance metrics and trade history
+   - Click \"Run Backtest\" to see performance metrics and trade history
+
+6. **Multi-Symbol Screener**:
+   - Expand the \"Multi-Symbol Screener\" section
+   - Enter comma-separated symbols (e.g., `BTCUSDT, ETHUSDT, SOLUSDT`)
+   - Select the screener interval (uses the same loopback as main analysis)
+   - Toggle \"Analyze Closed Candles Only\" for stable signals
+   - Click \"Scan Market\" to analyze all symbols
+   - Review the results table showing all setups with Entry, SL, TP, and DCA levels
+   - Results are automatically sorted by confidence score (highest first)
 
 ## 📁 Project Structure
 
