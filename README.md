@@ -35,6 +35,7 @@ A powerful, real-time cryptocurrency analysis dashboard built with Streamlit tha
 - **Risk Management**: Calculated Stop Loss and Take Profit levels (1:2 R/R)
 - **DCA Strategy**: 3 Dollar-Cost-Averaging levels for both Long and Short positions
 - **Confidence Scoring**: AI-powered confluence analysis (0-100%) with detailed reasoning
+- **Strategy Filters**: Optional Trend (SMA 200), Volume, ADX, and MACD filters to refine signals
 
 ### 🧪 Backtesting Engine
 - **Historical Simulation**: Test strategies on past data to verify performance
@@ -50,12 +51,13 @@ A powerful, real-time cryptocurrency analysis dashboard built with Streamlit tha
 - **Confidence Ranking**: Results sorted by confidence score for quick decision-making
 - **Customizable Symbol List**: Add or remove symbols to match watchlist
 - **Synchronized Settings**: Uses the same timeframe and loopback settings as main analysis
+- **Strategy Filters**: Apply the same Trend, Volume, ADX, and MACD filters as the Dashboard
 
 ### 🎨 Professional UI
-- Dark mode optimized interface
-- Interactive Plotly charts with multiple subplots
-- Real-time price updates
-- Clean, responsive layout
+- **Sidebar Navigation**: Easy access to Dashboard, Multi-Screener, and Backtester
+- **Dark mode optimized interface**: Sleek, modern design
+- **Interactive Plotly charts**: Multiple subplots for comprehensive analysis
+- **Real-time price updates**: Stay on top of market movements
 
 ## 📦 Installation
 
@@ -69,7 +71,7 @@ A powerful, real-time cryptocurrency analysis dashboard built with Streamlit tha
 Run the entire stack (Web App + Background Monitor) with a single command.
 
 1. **Configure Environment**:
-   - Copy `.env.example` to `.env` and add your API keys.
+   - Copy `.env.example` to `.env` and add your Telegram API keys.
    - (Optional) Edit `config.yaml` to customize symbols and intervals.
 
 2. **Run with Docker Compose**:
@@ -97,65 +99,52 @@ The app will open in your default browser at `http://localhost:8501`
 
 ### Basic Workflow
 
-1. **Configure Settings** (Left Sidebar):
-   - Enter the trading symbol (e.g., `BTCUSDT`, `ETHUSDT`)
-   - Select timeframe (5m, 15m, 1h, 2h, 4h, 1d)
-   - Adjust lookback period (100-1000 candles)
-   - Toggle "Analyze Closed Candles Only" for stable signals
+1. **Navigate** (Sidebar):
+   - Select **📊 Dashboard** for single-symbol analysis
+   - Select **🔍 Multi-Screener** for bulk scanning
+   - Select **🧪 Backtester** for strategy testing
 
-2. **Click "Analyze Market"** to fetch and analyze data
+2. **Configure Settings** (Sidebar):
+   - **Global Settings**: Interval and Loopback apply to all views
+   - **Strategy Filters**: Enable Trend, Volume, ADX, or MACD filters to refine your analysis
 
-3. **Review the Dashboard**:
-   - **Top Metrics**: Current price, trend, volume, L/S ratio, funding rate
-   - **Main Chart**: Candlesticks with EMAs, Bollinger Bands, VWAP, S/R levels, and FVGs
-   - **Volume Profile**: Side panel showing volume distribution and key levels
-   - **MACD Chart**: Momentum indicator with histogram
-   - **RSI Chart**: Overbought/oversold conditions
-   - **Open Interest Chart**: Futures market positioning
+3. **Dashboard Analysis**:
+   - Enter symbol (e.g., `BTCUSDT`)
+   - Click "Analyze Market"
+   - Review Charts, Metrics, and the **Trade Setup Card** with DCA levels
 
-4. **Trade Setup Card**:
-   - View the recommended trade direction (Long/Short)
-   - Check the confidence score and reasoning
-   - Note Entry, Stop Loss, and Take Profit prices
-   - Review DCA levels for position averaging
+4. **Multi-Symbol Screener**:
+   - Enter a comma-separated list of symbols
+   - Click "Scan Market"
+   - View a sorted table of high-confidence setups
+   - **Continuous Monitor**: Information about the background Docker service is displayed here
 
-5. **Run Backtest**:
-   - Expand the \"Backtesting Engine\" section
-   - Configure initial capital, position size, and DCA settings
-   - Enable optional filters (Trend, Volume, ADX, MACD) to refine the strategy
-   - Click \"Run Backtest\" to see performance metrics and trade history
+5. **Backtesting**:
+   - Configure capital, risk, and filters
+   - Run backtest to validate your strategy before trading
 
-6. **Multi-Symbol Screener**:
-   - Expand the \"Multi-Symbol Screener\" section
-   - Enter comma-separated symbols (e.g., `BTCUSDT, ETHUSDT, SOLUSDT`)
-   - Select the screener interval (uses the same loopback as main analysis)
-   - Toggle \"Analyze Closed Candles Only\" for stable signals
-   - Click \"Scan Market\" to analyze all symbols
-   - Review the results table showing all setups with Entry, SL, TP, and DCA levels
-   - Results are automatically sorted by confidence score (highest first)
-
-7. **Configure Alerts**:
+6. **Configure Alerts**:
    - In the Sidebar, scroll to "🔔 Alerts Config"
-   - Enable Telegram and/or Email alerts
-   - Enter your Bot Token, Chat ID, or Email Credentials
-   - **Manual Mode**: Alerts are sent automatically whenever you run a "Scan Market"
-   - **Continuous Mode**: Scroll to "🤖 Continuous Monitor" in the Screener section, set the frequency (e.g., 15 mins), and click "Start Continuous Monitor" to run in the background
+   - Enable **Telegram Alerts**
+   - Enter your Bot Token and Chat ID
+   - **Manual Mode**: Alerts sent when you click "Scan Market"
+   - **Continuous Mode**: The background Docker monitor uses settings from `config.yaml` to send alerts automatically
 
 ## 📁 Project Structure
 
 ```
 perosnal_bybit_crypto_analyzer/
 │
-├── app.py                 # Main Streamlit application
+├── app.py                 # Main Streamlit application (Sidebar Navigation)
 ├── backtester.py          # Backtesting engine and logic
 ├── data_loader.py         # Bybit API data fetching functions
 ├── indicators.py          # Technical indicators and strategy logic
 ├── screener.py            # Multi-symbol market screener
-├── alerts.py              # Telegram and Email notification system
-├── monitor.py             # Standalone background monitor script
+├── alerts.py              # Telegram notification system
+├── monitor.py             # Standalone background monitor script (Dockerized)
 ├── config.py              # Configuration loader
 ├── config.yaml            # User settings (Symbols, Interval)
-├── .env.example           # Example secrets file
+├── .env.example           # Example secrets file (Telegram keys)
 ├── Dockerfile             # Docker image definition
 ├── docker-compose.yml     # Docker services orchestration
 ├── requirements.txt       # Python dependencies
@@ -180,11 +169,11 @@ Any Bybit USDT perpetual futures pair (e.g., `BTCUSDT`, `ETHUSDT`, `SOLUSDT`, `X
 
 **Long Signals**:
 - EMA 9 crosses above EMA 21
-- RSI < 30 (Oversold)
+- RSI < 35 (Oversold - Relaxed)
 
 **Short Signals**:
 - EMA 9 crosses below EMA 21
-- RSI > 70 (Overbought)
+- RSI > 65 (Overbought - Relaxed)
 
 **Confidence Factors** (0-100%):
 - Trend Alignment (20%): Price vs SMA 200
@@ -202,6 +191,8 @@ Any Bybit USDT perpetual futures pair (e.g., `BTCUSDT`, `ETHUSDT`, `SOLUSDT`, `X
 - `plotly` - Interactive charting
 - `pybit` - Bybit API wrapper
 - `numpy` - Numerical computations
+- `PyYAML` - Configuration parsing
+- `python-dotenv` - Environment variable management
 
 ### API Usage
 This app uses **public Bybit API endpoints** and does not require API keys for basic functionality. All data is fetched in real-time from Bybit's public market data.
@@ -223,7 +214,8 @@ Planned features for future releases:
 
 - [x] **Backtesting Engine**: Test strategies on historical data with win rate and profit factor
 - [x] **Multi-Symbol Screener**: Scan multiple coins simultaneously for high-confidence setups with DCA levels
-- [x] **Alerts System**: Telegram/Email notifications for trade signals
+- [x] **Alerts System**: Telegram notifications for trade signals
+- [x] **Docker Support**: Full containerization for easy deployment
 - [ ] **AI Market Summary**: LLM-powered market analysis and insights
 - [ ] **Portfolio Tracking**: Monitor your actual Bybit positions (requires API keys)
 - [ ] **Custom Strategy Builder**: Create and test your own trading rules
