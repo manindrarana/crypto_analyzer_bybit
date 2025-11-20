@@ -233,18 +233,29 @@ def get_trade_setup(df, current_price, use_trend_filter=False, use_volume_filter
         return None
         
     # Signals
-    ema_cross_up = (prev_row['EMA_9'] <= prev_row['EMA_21']) and (last_row['EMA_9'] > last_row['EMA_21'])
-    ema_cross_down = (prev_row['EMA_9'] >= prev_row['EMA_21']) and (last_row['EMA_9'] < last_row['EMA_21'])
+    # Check for crossover in the last 3 candles to catch recent moves
+    ema_cross_up = False
+    ema_cross_down = False
     
-    rsi_oversold = last_row['RSI'] < 30
-    rsi_overbought = last_row['RSI'] > 70
+    for i in range(1, 4): # Check last 3 candles (indices -1, -2, -3)
+        curr = df.iloc[-i]
+        prev = df.iloc[-i-1]
+        if (prev['EMA_9'] <= prev['EMA_21']) and (curr['EMA_9'] > curr['EMA_21']):
+            ema_cross_up = True
+            break
+        if (prev['EMA_9'] >= prev['EMA_21']) and (curr['EMA_9'] < curr['EMA_21']):
+            ema_cross_down = True
+            break
+    
+    rsi_oversold = last_row['RSI'] < 35 # Relaxed from 30
+    rsi_overbought = last_row['RSI'] > 65 # Relaxed from 70
     
     signal = None
     trade_type = None
     
     # Long Logic
     if ema_cross_up:
-        signal = "EMA Cross UP (Long)"
+        signal = "Recent EMA Cross UP (Long)"
         trade_type = "LONG"
     elif rsi_oversold:
         signal = "RSI Oversold (Long)"
@@ -252,7 +263,7 @@ def get_trade_setup(df, current_price, use_trend_filter=False, use_volume_filter
         
     # Short Logic
     elif ema_cross_down:
-        signal = "EMA Cross DOWN (Short)"
+        signal = "Recent EMA Cross DOWN (Short)"
         trade_type = "SHORT"
     elif rsi_overbought:
         signal = "RSI Overbought (Short)"

@@ -436,6 +436,44 @@ def main():
         # Raw Data Expander
         with st.expander("View Raw Data"):
             st.dataframe(df.tail(10))
+            
+        # --- Multi-Symbol Screener ---
+        st.markdown("---")
+        st.subheader("🔍 Multi-Symbol Screener")
+        
+        with st.expander("⚙️ Screener Configuration", expanded=False):
+            default_symbols = "BTCUSDT, ETHUSDT, SOLUSDT, XRPUSDT, ADAUSDT, DOGEUSDT, DOTUSDT, MATICUSDT, LTCUSDT, LINKUSDT, ZECUSDT, ZKUSDT, STRKUSDT, UNIUSDT, AVAXUSDT, DYDXUSDT"
+            symbols_input = st.text_area("Symbols (comma separated)", value=default_symbols, height=70)
+            screener_interval = st.selectbox("Screener Interval", ["5m", "15m", "1h", "4h", "1d"], index=2, key="screener_interval")
+            screener_closed_candles = st.checkbox("Analyze Closed Candles Only", value=True, key="screener_closed", help="Stabilizes signals by ignoring the current forming candle.")
+            
+            if st.button("🔍 Scan Market", type="primary"):
+                import screener
+                
+                symbols_list = [s.strip() for s in symbols_input.split(',') if s.strip()]
+                
+                with st.spinner(f"Scanning {len(symbols_list)} symbols..."):
+                    results_df = screener.scan_market(symbols_list, screener_interval, loopback=loopback, use_closed_candles=screener_closed_candles)
+                    
+                    if not results_df.empty:
+                        st.success(f"Found {len(results_df)} active setups!")
+                        
+                        # Display Results
+                        st.dataframe(
+                            results_df.style.applymap(
+                                lambda x: 'color: green' if x == 'LONG' else 'color: red', subset=['Type']
+                            ).format({
+                                'Price': '${:.5f}',
+                                'Entry': '${:.5f}',
+                                'Stop Loss': '${:.5f}',
+                                'Take Profit': '${:.5f}',
+                                'Confidence': '{:.1f}%'
+                            }),
+                            use_container_width=True,
+                            hide_index=True
+                        )
+                    else:
+                        st.info("No active setups found for the selected symbols.")
 
 if __name__ == "__main__":
     main()
