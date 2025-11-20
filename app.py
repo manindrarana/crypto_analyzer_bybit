@@ -454,9 +454,14 @@ def main():
         st.subheader("🔍 Multi-Symbol Screener")
         
         with st.expander("⚙️ Screener Configuration", expanded=False):
-            default_symbols = "BTCUSDT, ETHUSDT, SOLUSDT, XRPUSDT, ADAUSDT, DOGEUSDT, DOTUSDT, MATICUSDT, LTCUSDT, LINKUSDT, ZECUSDT, ZKUSDT, STRKUSDT, UNIUSDT, AVAXUSDT, DYDXUSDT"
+            import config
+            cfg = config.load_config()
+            
+            default_symbols_list = cfg.get('symbols', ["BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT"])
+            default_symbols = ", ".join(default_symbols_list)
+            
             symbols_input = st.text_area("Symbols (comma separated)", value=default_symbols, height=70)
-            screener_interval = st.selectbox("Screener Interval", ["5m", "15m", "1h", "4h", "1d"], index=2, key="screener_interval")
+            screener_interval = st.selectbox("Screener Interval", ["5m", "15m", "1h", "4h", "1d"], index=["5m", "15m", "1h", "4h", "1d"].index(cfg.get('interval', '1h')), key="screener_interval")
             screener_closed_candles = st.checkbox("Analyze Closed Candles Only", value=True, key="screener_closed", help="Stabilizes signals by ignoring the current forming candle.")
             
             if st.button("🔍 Scan Market", type="primary"):
@@ -521,86 +526,23 @@ def main():
                             
                         st.success(f"✅ Sent alerts for {len(results_df)} setups!")
 
-            # --- Continuous Monitor ---
+            # --- Continuous Monitor Info ---
             st.markdown("---")
             st.subheader("🤖 Continuous Monitor")
-            st.info("⚠️ This mode will run a loop to scan the market periodically. The UI will be blocked while running. To stop, refresh the page.")
+            st.info("ℹ️ The Continuous Monitor now runs as a background service in Docker.")
+            st.markdown("""
+            To configure the monitor, edit `config.yaml` and restart the container.
             
-            col_mon1, col_mon2 = st.columns(2)
-            with col_mon1:
-                monitor_freq = st.number_input("Scan Frequency (Minutes)", min_value=1, max_value=60, value=15, step=1)
+            **Current Monitor Settings (from config):**
+            """)
             
-            if st.button("▶️ Start Continuous Monitor", type="primary"):
-                import time
-                import alerts
-                
-                status_placeholder = st.empty()
-                results_placeholder = st.empty()
-                log_placeholder = st.empty()
-                
-                alerted_setups = set() # Track (Symbol, Type, Entry) to avoid duplicates
-                
-                symbols_list = [s.strip() for s in symbols_input.split(',') if s.strip()]
-                
-                while True:
-                    current_time = time.strftime("%Y-%m-%d %H:%M:%S")
-                    status_placeholder.markdown(f"### ⏳ Scanning... (Last run: {current_time})")
-                    
-                    try:
-                        # Scan
-                        results_df = screener.scan_market(symbols_list, screener_interval, loopback=loopback, use_closed_candles=screener_closed_candles)
-                        
-                        if not results_df.empty:
-                            results_placeholder.dataframe(
-                                results_df.style.applymap(
-                                    lambda x: 'color: green' if x == 'LONG' else 'color: red', subset=['Type']
-                                ).format({
-                                    'Price': '${:.5f}',
-                                    'Entry': '${:.5f}',
-                                    'Stop Loss': '${:.5f}',
-                                    'Take Profit': '${:.5f}',
-                                    'DCA 1': '${:.5f}',
-                                    'DCA 2': '${:.5f}',
-                                    'DCA 3': '${:.5f}',
-                                    'Confidence': '{:.1f}%'
-                                }),
-                                use_container_width=True,
-                                hide_index=True
-                            )
-                            
-                            # Check for new setups and alert
-                            new_alerts_count = 0
-                            for index, row in results_df.iterrows():
-                                setup_id = (row['Symbol'], row['Type'], row['Entry'])
-                                
-                                if setup_id not in alerted_setups:
-                                    # Send Alert
-                                    msg = alerts.format_setup_message(row)
-                                    
-                                    if enable_telegram and telegram_token and telegram_chat_id:
-                                        alerts.send_telegram_message(telegram_token, telegram_chat_id, msg)
-                                        
-                                    if enable_email and email_sender and email_password and email_receiver:
-                                        subject = f"Trade Setup: {row['Symbol']} ({row['Type']})"
-                                        alerts.send_email("smtp.gmail.com", 587, email_sender, email_password, email_receiver, subject, msg)
-                                        
-                                    alerted_setups.add(setup_id)
-                                    new_alerts_count += 1
-                                    log_placeholder.text(f"[{current_time}] Alert sent for {row['Symbol']}")
-                            
-                            if new_alerts_count == 0:
-                                log_placeholder.text(f"[{current_time}] No new setups found.")
-                                
-                        else:
-                            results_placeholder.info("No active setups found.")
-                            log_placeholder.text(f"[{current_time}] No active setups.")
-                            
-                    except Exception as e:
-                        st.error(f"Monitor Error: {e}")
-                        
-                    # Wait
-                    status_placeholder.markdown(f"### 💤 Sleeping for {monitor_freq} minutes...")
-                    time.sleep(monitor_freq * 60)
+            import config
+            cfg = config.load_config()
+            st.json({
+                "Monitor Frequency": f"{cfg.get('monitor_frequency_minutes', 15)} minutes",
+                "Monitored Symbols": cfg.get('symbols', []),
+                "Interval": cfg.get('interval', '1h')
+            })
 
 if __name__ == "__main__":
     main()

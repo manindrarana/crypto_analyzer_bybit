@@ -1,0 +1,29 @@
+# Market Analysis Configuration
+symbols:
+  - BTCUSDT
+  - ETHUSDT
+  - SOLUSDT
+  - XRPUSDT
+  - ADAUSDT
+  - DOGEUSDT
+  - DOTUSDT
+  - MATICUSDT
+  - LTCUSDT
+  - LINKUSDT
+  - XLMUSDT
+  - DYDXUSDT
+  - UNIUSDT
+  - AVAXUSDT
+  - ZECUSDT
+  - ZKUSDT
+  - STRKUSDT
+  - DASHUSDT
+  - SUIUSDT
+
+# Timeframe Settings
+interval: "1h"
+loopback: 200
+use_closed_candles: true
+
+# Monitor Settings
+monitor_frequency_minutes: 15

@@ -65,6 +65,22 @@ A powerful, real-time cryptocurrency analysis dashboard built with Streamlit tha
 
 ### Setup
 
+#### Option 1: Docker (Recommended)
+Run the entire stack (Web App + Background Monitor) with a single command.
+
+1. **Configure Environment**:
+   - Copy `.env.example` to `.env` and add your API keys.
+   - (Optional) Edit `config.yaml` to customize symbols and intervals.
+
+2. **Run with Docker Compose**:
+```bash
+docker-compose up --build -d
+```
+- Web App: `http://localhost:8501`
+- Monitor: Runs in background (check logs with `docker-compose logs -f monitor`)
+
+#### Option 2: Local Python Setup
+
 1. **Install dependencies**
 ```bash
 pip install -r requirements.txt
@@ -136,6 +152,12 @@ perosnal_bybit_crypto_analyzer/
 ├── indicators.py          # Technical indicators and strategy logic
 ├── screener.py            # Multi-symbol market screener
 ├── alerts.py              # Telegram and Email notification system
+├── monitor.py             # Standalone background monitor script
+├── config.py              # Configuration loader
+├── config.yaml            # User settings (Symbols, Interval)
+├── .env.example           # Example secrets file
+├── Dockerfile             # Docker image definition
+├── docker-compose.yml     # Docker services orchestration
 ├── requirements.txt       # Python dependencies
 ├── .gitignore            # Git ignore rules
 └── README.md             # This file

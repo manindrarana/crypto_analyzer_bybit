@@ -2,3 +2,6 @@ streamlit
 pandas
 plotly
 pybit
+PyYAML
+python-dotenv
+requests
