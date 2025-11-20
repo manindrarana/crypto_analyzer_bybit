@@ -22,10 +22,15 @@ symbols:
   - 1000PEPEUSDT
   - 1000SHIBUSDT
 
-# Timeframe Settings
+# Timeframe Settings (for simple monitor and UI)
 interval: "1h"
 loopback: 1000
 use_closed_candles: true
 
 # Monitor Settings
 monitor_frequency_minutes: 15
+
+# Advanced Monitor Settings (multi-timeframe)
+min_confluence: 60  # Minimum confluence score to trigger alert (60-100)
+max_alerts_per_hour: 10  # Maximum alerts to prevent spam
+symbol_cooldown_minutes: 120  # Wait 2 hours before alerting same symbol again

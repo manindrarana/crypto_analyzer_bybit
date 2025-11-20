@@ -22,5 +22,5 @@ services:
       - ./data:/app/data
     environment:
       - PYTHONUNBUFFERED=1
-    command: python monitor.py
+    command: python monitor_advanced.py  # Multi-timeframe monitor (use monitor_simple.py for basic)
     restart: unless-stopped
