@@ -39,6 +39,18 @@ def main():
     loopback = st.sidebar.slider("Loopback (Candles)", min_value=100, max_value=1000, value=200, step=50)
     use_closed_candles = st.sidebar.checkbox("Analyze Closed Candles Only", value=True, help="Stabilizes signals by ignoring the current forming candle.")
     
+    # Alerts Configuration
+    st.sidebar.markdown("---")
+    st.sidebar.header("🔔 Alerts Config")
+    enable_telegram = st.sidebar.checkbox("Enable Telegram Alerts")
+    telegram_token = st.sidebar.text_input("Bot Token", type="password", disabled=not enable_telegram)
+    telegram_chat_id = st.sidebar.text_input("Chat ID", disabled=not enable_telegram)
+    
+    enable_email = st.sidebar.checkbox("Enable Email Alerts")
+    email_sender = st.sidebar.text_input("Sender Email", disabled=not enable_email)
+    email_password = st.sidebar.text_input("App Password", type="password", disabled=not enable_email)
+    email_receiver = st.sidebar.text_input("Receiver Email", disabled=not enable_email)
+    
     # Initialize session state
     if 'data' not in st.session_state:
         st.session_state.data = None
@@ -477,6 +489,118 @@ def main():
                         )
                     else:
                         st.info("No active setups found for the selected symbols.")
+                        
+                    # Send Alerts
+                    if not results_df.empty and (enable_telegram or enable_email):
+                        import alerts
+                        st.markdown("---")
+                        st.subheader("🔔 Sending Alerts...")
+                        
+                        count = 0
+                        progress_bar = st.progress(0)
+                        
+                        for index, row in results_df.iterrows():
+                            # Format message
+                            msg = alerts.format_setup_message(row)
+                            
+                            # Send Telegram
+                            if enable_telegram and telegram_token and telegram_chat_id:
+                                success, error = alerts.send_telegram_message(telegram_token, telegram_chat_id, msg)
+                                if not success:
+                                    st.error(f"Telegram Error ({row['Symbol']}): {error}")
+                                    
+                            # Send Email
+                            if enable_email and email_sender and email_password and email_receiver:
+                                subject = f"Trade Setup: {row['Symbol']} ({row['Type']})"
+                                success, error = alerts.send_email("smtp.gmail.com", 587, email_sender, email_password, email_receiver, subject, msg)
+                                if not success:
+                                    st.error(f"Email Error ({row['Symbol']}): {error}")
+                                    
+                            count += 1
+                            progress_bar.progress(count / len(results_df))
+                            
+                        st.success(f"✅ Sent alerts for {len(results_df)} setups!")
+
+            # --- Continuous Monitor ---
+            st.markdown("---")
+            st.subheader("🤖 Continuous Monitor")
+            st.info("⚠️ This mode will run a loop to scan the market periodically. The UI will be blocked while running. To stop, refresh the page.")
+            
+            col_mon1, col_mon2 = st.columns(2)
+            with col_mon1:
+                monitor_freq = st.number_input("Scan Frequency (Minutes)", min_value=1, max_value=60, value=15, step=1)
+            
+            if st.button("▶️ Start Continuous Monitor", type="primary"):
+                import time
+                import alerts
+                
+                status_placeholder = st.empty()
+                results_placeholder = st.empty()
+                log_placeholder = st.empty()
+                
+                alerted_setups = set() # Track (Symbol, Type, Entry) to avoid duplicates
+                
+                symbols_list = [s.strip() for s in symbols_input.split(',') if s.strip()]
+                
+                while True:
+                    current_time = time.strftime("%Y-%m-%d %H:%M:%S")
+                    status_placeholder.markdown(f"### ⏳ Scanning... (Last run: {current_time})")
+                    
+                    try:
+                        # Scan
+                        results_df = screener.scan_market(symbols_list, screener_interval, loopback=loopback, use_closed_candles=screener_closed_candles)
+                        
+                        if not results_df.empty:
+                            results_placeholder.dataframe(
+                                results_df.style.applymap(
+                                    lambda x: 'color: green' if x == 'LONG' else 'color: red', subset=['Type']
+                                ).format({
+                                    'Price': '${:.5f}',
+                                    'Entry': '${:.5f}',
+                                    'Stop Loss': '${:.5f}',
+                                    'Take Profit': '${:.5f}',
+                                    'DCA 1': '${:.5f}',
+                                    'DCA 2': '${:.5f}',
+                                    'DCA 3': '${:.5f}',
+                                    'Confidence': '{:.1f}%'
+                                }),
+                                use_container_width=True,
+                                hide_index=True
+                            )
+                            
+                            # Check for new setups and alert
+                            new_alerts_count = 0
+                            for index, row in results_df.iterrows():
+                                setup_id = (row['Symbol'], row['Type'], row['Entry'])
+                                
+                                if setup_id not in alerted_setups:
+                                    # Send Alert
+                                    msg = alerts.format_setup_message(row)
+                                    
+                                    if enable_telegram and telegram_token and telegram_chat_id:
+                                        alerts.send_telegram_message(telegram_token, telegram_chat_id, msg)
+                                        
+                                    if enable_email and email_sender and email_password and email_receiver:
+                                        subject = f"Trade Setup: {row['Symbol']} ({row['Type']})"
+                                        alerts.send_email("smtp.gmail.com", 587, email_sender, email_password, email_receiver, subject, msg)
+                                        
+                                    alerted_setups.add(setup_id)
+                                    new_alerts_count += 1
+                                    log_placeholder.text(f"[{current_time}] Alert sent for {row['Symbol']}")
+                            
+                            if new_alerts_count == 0:
+                                log_placeholder.text(f"[{current_time}] No new setups found.")
+                                
+                        else:
+                            results_placeholder.info("No active setups found.")
+                            log_placeholder.text(f"[{current_time}] No active setups.")
+                            
+                    except Exception as e:
+                        st.error(f"Monitor Error: {e}")
+                        
+                    # Wait
+                    status_placeholder.markdown(f"### 💤 Sleeping for {monitor_freq} minutes...")
+                    time.sleep(monitor_freq * 60)
 
 if __name__ == "__main__":
     main()

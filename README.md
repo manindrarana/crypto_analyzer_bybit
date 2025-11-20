@@ -118,6 +118,13 @@ The app will open in your default browser at `http://localhost:8501`
    - Review the results table showing all setups with Entry, SL, TP, and DCA levels
    - Results are automatically sorted by confidence score (highest first)
 
+7. **Configure Alerts**:
+   - In the Sidebar, scroll to "🔔 Alerts Config"
+   - Enable Telegram and/or Email alerts
+   - Enter your Bot Token, Chat ID, or Email Credentials
+   - **Manual Mode**: Alerts are sent automatically whenever you run a "Scan Market"
+   - **Continuous Mode**: Scroll to "🤖 Continuous Monitor" in the Screener section, set the frequency (e.g., 15 mins), and click "Start Continuous Monitor" to run in the background
+
 ## 📁 Project Structure
 
 ```
@@ -128,6 +135,7 @@ perosnal_bybit_crypto_analyzer/
 ├── data_loader.py         # Bybit API data fetching functions
 ├── indicators.py          # Technical indicators and strategy logic
 ├── screener.py            # Multi-symbol market screener
+├── alerts.py              # Telegram and Email notification system
 ├── requirements.txt       # Python dependencies
 ├── .gitignore            # Git ignore rules
 └── README.md             # This file
@@ -193,7 +201,7 @@ Planned features for future releases:
 
 - [x] **Backtesting Engine**: Test strategies on historical data with win rate and profit factor
 - [x] **Multi-Symbol Screener**: Scan multiple coins simultaneously for high-confidence setups with DCA levels
-- [ ] **Alerts System**: Telegram/Email notifications for trade signals
+- [x] **Alerts System**: Telegram/Email notifications for trade signals
 - [ ] **AI Market Summary**: LLM-powered market analysis and insights
 - [ ] **Portfolio Tracking**: Monitor your actual Bybit positions (requires API keys)
 - [ ] **Custom Strategy Builder**: Create and test your own trading rules
