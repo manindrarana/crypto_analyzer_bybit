@@ -43,6 +43,14 @@ A powerful, real-time cryptocurrency analysis dashboard built with Streamlit tha
 - **Advanced Filters**: Trend (SMA 200), Volume, ADX, and MACD filters to refine strategy
 - **DCA Support**: Simulate Dollar-Cost Averaging logic in backtests
 
+### 🔍 Multi-Symbol Screener
+- **Bulk Analysis**: Scan multiple cryptocurrencies simultaneously
+- **Trade Setup Detection**: Automatically identify high-confidence setups across all symbols
+- **Complete Trade Data**: Entry, Stop Loss, Take Profit, and all 3 DCA levels for each setup
+- **Confidence Ranking**: Results sorted by confidence score for quick decision-making
+- **Customizable Symbol List**: Add or remove symbols to match watchlist
+- **Synchronized Settings**: Uses the same timeframe and loopback settings as main analysis
+
 ### 🎨 Professional UI
 - Dark mode optimized interface
 - Interactive Plotly charts with multiple subplots
@@ -110,6 +118,7 @@ perosnal_bybit_crypto_analyzer/
 ├── backtester.py          # Backtesting engine and logic
 ├── data_loader.py         # Bybit API data fetching functions
 ├── indicators.py          # Technical indicators and strategy logic
+├── screener.py            # Multi-symbol market screener
 ├── requirements.txt       # Python dependencies
 ├── .gitignore            # Git ignore rules
 └── README.md             # This file
@@ -174,7 +183,7 @@ This app uses **public Bybit API endpoints** and does not require API keys for b
 Planned features for future releases:
 
 - [x] **Backtesting Engine**: Test strategies on historical data with win rate and profit factor
-- [ ] **Multi-Symbol Screener**: Scan multiple coins simultaneously for high-confidence setups
+- [x] **Multi-Symbol Screener**: Scan multiple coins simultaneously for high-confidence setups with DCA levels
 - [ ] **Alerts System**: Telegram/Email notifications for trade signals
 - [ ] **AI Market Summary**: LLM-powered market analysis and insights
 - [ ] **Portfolio Tracking**: Monitor your actual Bybit positions (requires API keys)
