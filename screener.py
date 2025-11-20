@@ -3,7 +3,7 @@ import data_loader
 import indicators
 import time
 
-def scan_market(symbols, interval, loopback=200, use_closed_candles=True):
+def scan_market(symbols, interval, loopback=200, use_closed_candles=True, use_trend_filter=False, use_volume_filter=False, use_adx_filter=False, use_macd_filter=False):
     """
     Scans a list of symbols for trade setups.
     
@@ -12,6 +12,10 @@ def scan_market(symbols, interval, loopback=200, use_closed_candles=True):
         interval (str): Timeframe (e.g., '15m', '1h')
         loopback (int): Number of candles to fetch
         use_closed_candles (bool): If True, ignores the current forming candle.
+        use_trend_filter (bool): Require price > SMA200 for Long, < SMA200 for Short
+        use_volume_filter (bool): Require Volume > Vol SMA 20
+        use_adx_filter (bool): Require ADX > 25
+        use_macd_filter (bool): Require MACD momentum confirmation
         
     Returns:
         pd.DataFrame: DataFrame containing active setups and metrics for each symbol.
@@ -42,7 +46,14 @@ def scan_market(symbols, interval, loopback=200, use_closed_candles=True):
             current_price = df['Close'].iloc[-1]
             
             # Check for Setup
-            setup = indicators.get_trade_setup(df, current_price)
+            setup = indicators.get_trade_setup(
+                df, 
+                current_price,
+                use_trend_filter=use_trend_filter,
+                use_volume_filter=use_volume_filter,
+                use_adx_filter=use_adx_filter,
+                use_macd_filter=use_macd_filter
+            )
             
             if setup:
                 # Calculate Confidence

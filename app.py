@@ -166,6 +166,15 @@ def main():
     loopback = st.sidebar.slider("Loopback (Candles)", min_value=100, max_value=1000, value=default_loopback, step=50)
     use_closed_candles = st.sidebar.checkbox("Analyze Closed Candles Only", value=True, help="Stabilizes signals by ignoring the current forming candle.")
 
+    # --- Strategy Filters (Global) ---
+    st.sidebar.markdown("---")
+    with st.sidebar.expander("🛠️ Strategy Filters", expanded=False):
+        st.caption("Apply to Dashboard & Screener")
+        use_trend = st.checkbox("Trend Filter (SMA 200)", value=False, help="Long > SMA200, Short < SMA200")
+        use_volume = st.checkbox("Volume Filter", value=False, help="Volume > Vol SMA 20")
+        use_adx = st.checkbox("ADX Filter (> 25)", value=False, help="Strong Trend Only")
+        use_macd = st.checkbox("MACD Filter", value=False, help="Momentum Confirmation")
+
     # --- Alerts Config (Telegram Only) ---
     st.sidebar.markdown("---")
     with st.sidebar.expander("🔔 Alerts Config"):
@@ -272,7 +281,14 @@ def main():
                     st.dataframe(df.tail(10))
             
             with col_strat2:
-                setup = indicators.get_trade_setup(df, current_price)
+                setup = indicators.get_trade_setup(
+                    df, 
+                    current_price,
+                    use_trend_filter=use_trend,
+                    use_volume_filter=use_volume,
+                    use_adx_filter=use_adx,
+                    use_macd_filter=use_macd
+                )
                 
                 st.subheader("Strategy Dashboard")
                 if setup:
@@ -330,7 +346,16 @@ def main():
             symbols_list = [s.strip() for s in symbols_input.split(',') if s.strip()]
             
             with st.spinner(f"Scanning {len(symbols_list)} symbols..."):
-                results_df = screener.scan_market(symbols_list, screener_interval, loopback=loopback, use_closed_candles=use_closed_candles)
+                results_df = screener.scan_market(
+                    symbols_list, 
+                    screener_interval, 
+                    loopback=loopback, 
+                    use_closed_candles=use_closed_candles,
+                    use_trend_filter=use_trend,
+                    use_volume_filter=use_volume,
+                    use_adx_filter=use_adx,
+                    use_macd_filter=use_macd
+                )
                 
                 if not results_df.empty:
                     st.subheader(f"Found {len(results_df)} Trade Setups")
