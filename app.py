@@ -290,11 +290,11 @@ def main():
                     use_macd_filter=use_macd
                 )
                 
-                st.subheader("Strategy Dashboard")
+                st.subheader("Active Trade Setup")
                 if setup:
-                    confidence = indicators.calculate_confidence(setup, df)
-                    setup['Confidence'] = confidence['score']
-                    setup['Reasons'] = confidence['reasons']
+                    score, reasons = indicators.calculate_confidence(df, setup)
+                    setup['Confidence'] = score
+                    setup['Reasons'] = reasons
                     
                     conf_color = "red"
                     if setup['Confidence'] > 70: conf_color = "green"
@@ -311,14 +311,14 @@ def main():
                         <p><em>{', '.join(setup['Reasons'])}</em></p>
                         <hr>
                         <p><strong>Entry:</strong> ${setup['Entry']:.5f}</p>
-                        <p><strong>Stop Loss:</strong> ${setup['Stop Loss']:.5f}</p>
-                        <p><strong>Take Profit:</strong> ${setup['Take Profit']:.5f} (Risk/Reward 1:2)</p>
+                        <p><strong>Stop Loss:</strong> ${setup['SL']:.5f}</p>
+                        <p><strong>Take Profit:</strong> ${setup['TP']:.5f} (Risk/Reward 1:2)</p>
                         <hr>
                         <h4>DCA Levels:</h4>
                         <ul>
-                            <li>Level 1 ({dca_labels[0]}): ${setup['DCA 1']:.5f}</li>
-                            <li>Level 2 ({dca_labels[1]}): ${setup['DCA 2']:.5f}</li>
-                            <li>Level 3 ({dca_labels[2]}): ${setup['DCA 3']:.5f}</li>
+                            <li>Level 1 ({dca_labels[0]}): ${setup['DCA_1']:.5f}</li>
+                            <li>Level 2 ({dca_labels[1]}): ${setup['DCA_2']:.5f}</li>
+                            <li>Level 3 ({dca_labels[2]}): ${setup['DCA_3']:.5f}</li>
                         </ul>
                     </div>
                     """, unsafe_allow_html=True)
