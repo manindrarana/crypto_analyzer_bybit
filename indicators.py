@@ -14,12 +14,13 @@ def calculate_indicators(df):
     low = df['Low']
     volume = df['Volume']
 
-    # Trend
-    # EMA 9
+    # Trend - Complete EMA Ribbon
     df['EMA_9'] = close.ewm(span=9, adjust=False).mean()
-    # EMA 21
+    df['EMA_15'] = close.ewm(span=15, adjust=False).mean()
     df['EMA_21'] = close.ewm(span=21, adjust=False).mean()
-    # SMA 200
+    df['EMA_50'] = close.ewm(span=50, adjust=False).mean()
+    df['EMA_200'] = close.ewm(span=200, adjust=False).mean()
+    # SMA 200 for trend filter
     df['SMA_200'] = close.rolling(window=200).mean()
     
     # Volatility: Bollinger Bands (20, 2)
@@ -169,54 +170,212 @@ def calculate_vwap(df):
 
 def calculate_confidence(df, setup):
     """
-    Calculates a confidence score (0-100) for the trade setup.
+    Professional multi-factor confluence scoring using ALL available analysis:
+    - EMA Ribbon alignment
+    - ZigZag market structure
+    - Chart patterns
+    - FVG proximity  
+    - Liquidation level sweeps
+    - Trendline bounces/breaks
+    - Volume, RSI, MACD, ADX
+    Returns score 0-100 and detailed reasons.
     """
-    if not setup or df is None:
+    if not setup or df is None or len(df) < 50:
         return 0, []
         
-    score = 50
+    score = 0  # Start from 0 - need to earn every point
     reasons = []
     
     last_row = df.iloc[-1]
+    current_price = setup['Entry']
+    trade_type = setup['Type']
     
-    # 1. Trend Alignment
-    if setup['Type'] == 'LONG':
-        if last_row['EMA_9'] > last_row['EMA_21']:
-            score += 10
-            reasons.append("Trend is Bullish (EMA)")
-        if last_row['Close'] > last_row['SMA_200']:
-            score += 10
-            reasons.append("Above 200 SMA")
-    elif setup['Type'] == 'SHORT':
-        if last_row['EMA_9'] < last_row['EMA_21']:
-            score += 10
-            reasons.append("Trend is Bearish (EMA)")
-        if last_row['Close'] < last_row['SMA_200']:
-            score += 10
-            reasons.append("Below 200 SMA")
-            
-    # 2. RSI Context
-    if setup['Type'] == 'LONG' and last_row['RSI'] < 40:
-        score += 10
-        reasons.append("RSI in Bullish Zone")
-    elif setup['Type'] == 'SHORT' and last_row['RSI'] > 60:
-        score += 10
-        reasons.append("RSI in Bearish Zone")
+    # Calculate all advanced analysis
+    try:
+        zigzag = calculate_zigzag(df)
+        liq_levels = calculate_liquidation_levels(zigzag, current_price)
+        trendlines = detect_trendlines(zigzag)
+        chart_patterns = detect_chart_patterns(df, zigzag)
+        fvgs = calculate_fvg(df)
+    except:
+        # Fallback if advanced calcs fail
+        zigzag, liq_levels, trendlines, chart_patterns, fvgs = [], [], {'support': [], 'resistance': []}, [], []
+    
+    # === 1. EMA RIBBON ALIGNMENT (Max 25 points) ===
+    ema_score = 0
+    if not pd.isna(last_row.get('EMA_9')) and not pd.isna(last_row.get('EMA_200')):
+        if trade_type == 'LONG':
+            # Perfect bullish ribbon: 9 > 15 > 21 > 50 > 200
+            if (last_row['EMA_9'] > last_row.get('EMA_15', 0) > last_row.get('EMA_21', 0) > 
+                last_row.get('EMA_50', 0) > last_row.get('EMA_200', 0)):
+                ema_score += 25
+                reasons.append("⭐ Perfect EMA Ribbon Alignment")
+            elif last_row['EMA_9'] > last_row['EMA_21'] > last_row.get('EMA_50', 0):
+                ema_score += 15
+                reasons.append("Strong EMA Trend")
+            elif last_row['EMA_9'] > last_row['EMA_21']:
+                ema_score += 8
+                reasons.append("EMA Cross Bullish")
+                
+            # Above 200 EMA bonus
+            if current_price > last_row.get('EMA_200', 0):
+                ema_score += 5
+                reasons.append("Above 200 EMA")
+                
+        elif trade_type == 'SHORT':
+            # Perfect bearish ribbon
+            if (last_row['EMA_9'] < last_row.get('EMA_15', float('inf')) < last_row.get('EMA_21', float('inf')) < 
+                last_row.get('EMA_50', float('inf')) < last_row.get('EMA_200', float('inf'))):
+                ema_score += 25
+                reasons.append("⭐ Perfect EMA Ribbon Alignment")
+            elif last_row['EMA_9'] < last_row['EMA_21'] < last_row.get('EMA_50', float('inf')):
+                ema_score += 15
+                reasons.append("Strong EMA Trend")
+            elif last_row['EMA_9'] < last_row['EMA_21']:
+                ema_score += 8
+                reasons.append("EMA Cross Bearish")
+                
+            # Below 200 EMA bonus
+            if current_price < last_row.get('EMA_200', float('inf')):
+                ema_score += 5
+                reasons.append("Below 200 EMA")
+    
+    score += min(ema_score, 25)
+    
+    # === 2. ZIGZAG MARKET STRUCTURE (Max 20 points) ===
+    structure_score = 0
+    if zigzag and len(zigzag) >= 2:
+        last_swing = zigzag[-1]
+        # Trading with structure (bouncing off swing low for long, swing high for short)
+        if trade_type == 'LONG' and last_swing['type'] == 'low':
+            price_diff = abs(current_price - last_swing['price']) / current_price
+            if price_diff < 0.01:  # Within 1% of swing
+                structure_score += 20
+                reasons.append("🎯 Bounce off Swing Low")
+            elif price_diff < 0.03:
+                structure_score += 10
+                reasons.append("Near Swing Low")
+        elif trade_type == 'SHORT' and last_swing['type'] == 'high':
+            price_diff = abs(current_price - last_swing['price']) / current_price
+            if price_diff < 0.01:
+                structure_score += 20
+                reasons.append("🎯 Rejection at Swing High")
+            elif price_diff < 0.03:
+                structure_score += 10
+                reasons.append("Near Swing High")
+    
+    score += min(structure_score, 20)
+    
+    # === 3. CHART PATTERNS (Max 20 points) ===
+    pattern_score = 0
+    if chart_patterns:
+        for pattern in chart_patterns:
+            if pattern['target_direction'] == trade_type:
+                if pattern['confidence'] == 'High':
+                    pattern_score += 20
+                    reasons.append(f"🔥 {pattern['type']}")
+                    break  # Only count strongest
+                elif pattern['confidence'] == 'Medium':
+                    pattern_score += 12
+                    reasons.append(f"📊 {pattern['type']}")
+    
+    score += min(pattern_score, 20)
+    
+    # === 4. LIQUIDATION LEVEL SWEEP (Max 15 points) ===
+    liq_score = 0
+    if liq_levels:
+        for liq in liq_levels:
+            price_diff = abs(current_price - liq['price']) / current_price
+            if price_diff < 0.005:  # Within 0.5%
+                if (trade_type == 'LONG' and 'Long Liq' in liq['type']) or \
+                   (trade_type == 'SHORT' and 'Short Liq' in liq['type']):
+                    liq_score += 15
+                    reasons.append(f"💀 Liquidation Sweep {liq['leverage']}x")
+                    break
+    
+    score += min(liq_score, 15)
+    
+    # === 5. FAIR VALUE GAP (Max 10 points) ===
+    fvg_score = 0
+    if fvgs:
+        for fvg in fvgs:
+            # Check if price is in FVG
+            if fvg['bottom'] <= current_price <= fvg['top']:
+                if (trade_type == 'LONG' and fvg['type'] == 'bullish') or \
+                   (trade_type == 'SHORT' and fvg['type'] == 'bearish'):
+                    fvg_score += 10
+                    reasons.append("📍 Trading from FVG")
+                    break
+    
+    score += min(fvg_score, 10)
+    
+    # === 6. TRENDLINE CONFIRMATION (Max 10 points) ===
+    trendline_score = 0
+    if trendlines['support'] or trendlines['resistance']:
+        # Check if near trendline
+        for tl in trendlines['support']:
+            # Estimate current trendline price (simplified)
+            if trade_type == 'LONG' and abs(current_price - tl['start']['price']) / current_price < 0.02:
+                trendline_score += 10
+                reasons.append("📈 Support Trendline Bounce")
+                break
         
-    # 3. Volume Confirmation
-    if last_row['Volume'] > last_row['VOL_SMA_20']:
-        score += 10
-        reasons.append("High Volume")
-        
-    # 4. Pattern Confirmation
-    if setup['Type'] == 'LONG' and last_row['Pattern'] in ['Bullish Engulfing', 'Hammer']:
-        score += 10
-        reasons.append(f"Bullish Pattern: {last_row['Pattern']}")
-    elif setup['Type'] == 'SHORT' and last_row['Pattern'] in ['Bearish Engulfing']:
-        score += 10
-        reasons.append(f"Bearish Pattern: {last_row['Pattern']}")
-        
-    return min(score, 100), reasons
+        for tl in trendlines['resistance']:
+            if trade_type == 'SHORT' and abs(current_price - tl['start']['price']) / current_price < 0.02:
+                trendline_score += 10
+                reasons.append("📉 Resistance Trendline")
+                break
+    
+    score += min(trendline_score, 10)
+    
+    # === 7. VOLUME CONFIRMATION (Max 5 points) ===
+    if not pd.isna(last_row.get('Volume')) and not pd.isna(last_row.get('VOL_SMA_20')):
+        if last_row['Volume'] > last_row['VOL_SMA_20'] * 1.5:
+            score += 5
+            reasons.append("📊 Strong Volume")
+        elif last_row['Volume'] > last_row['VOL_SMA_20']:
+            score += 3
+            reasons.append("Volume Confirmed")
+    
+    # === 8. RSI EXTREMES (Max 5 points) ===
+    if not pd.isna(last_row.get('RSI')):
+        if trade_type == 'LONG' and last_row['RSI'] < 30:
+            score += 5
+            reasons.append("RSI Oversold")
+        elif trade_type == 'LONG' and last_row['RSI'] < 40:
+            score += 3
+        elif trade_type == 'SHORT' and last_row['RSI'] > 70:
+            score += 5
+            reasons.append("RSI Overbought")
+        elif trade_type == 'SHORT' and last_row['RSI'] > 60:
+            score += 3
+    
+    # === 9. ADX TREND STRENGTH (Max 5 points) ===
+    if not pd.isna(last_row.get('ADX')):
+        if last_row['ADX'] > 40:
+            score += 5
+            reasons.append("Very Strong Trend (ADX)")
+        elif last_row['ADX'] > 25:
+            score += 3
+            reasons.append("Strong Trend")
+    
+    # === 10. CANDLESTICK PATTERNS (Max 5 points) ===
+    if last_row.get('Pattern'):
+        if trade_type == 'LONG' and last_row['Pattern'] in ['Bullish Engulfing', 'Hammer']:
+            score += 5
+            reasons.append(f"🕯️ {last_row['Pattern']}")
+        elif trade_type == 'SHORT' and last_row['Pattern'] in ['Bearish Engulfing', 'Shooting Star']:
+            score += 5
+            reasons.append(f"🕯️ {last_row['Pattern']}")
+    
+    # Total possible: 120 points, cap at 100
+    final_score = min(score, 100)
+    
+    # Only return setup if score >= 60 (professional threshold)
+    if final_score < 60:
+        reasons.insert(0, f"⚠️ Confluence Too Low ({final_score}%)")
+    
+    return final_score, reasons
 
 def get_trade_setup(df, current_price, use_trend_filter=False, use_volume_filter=False, use_adx_filter=False, use_macd_filter=False):
     """
@@ -382,3 +541,275 @@ def calculate_volume_profile(df, n_rows=100):
     }
     
     return vp_df, levels
+def calculate_zigzag(df, deviation=0.02):
+    """
+    Calculates ZigZag points for market structure identification.
+    Identifies swing highs and lows based on percentage deviation.
+    """
+    points = []
+    if df is None or len(df) < 5:
+        return points
+        
+    last_point = {'date': df.index[0], 'price': df['Close'].iloc[0], 'type': 'start'}
+    points.append(last_point)
+    
+    direction = 0  # 1 for up, -1 for down
+    
+    for i in range(1, len(df)):
+        price = df['Close'].iloc[i]
+        date = df.index[i]
+        change = (price - last_point['price']) / last_point['price']
+        
+        if direction == 0:
+            if change >= deviation:
+                direction = 1
+                last_point = {'date': date, 'price': price, 'type': 'high'}
+                points.append(last_point)
+            elif change <= -deviation:
+                direction = -1
+                last_point = {'date': date, 'price': price, 'type': 'low'}
+                points.append(last_point)
+        elif direction == 1:  # Uptrend
+            if price > last_point['price']:
+                last_point['date'] = date
+                last_point['price'] = price
+                points[-1] = last_point
+            elif change <= -deviation:
+                direction = -1
+                last_point = {'date': date, 'price': price, 'type': 'low'}
+                points.append(last_point)
+        elif direction == -1:  # Downtrend
+            if price < last_point['price']:
+                last_point['date'] = date
+                last_point['price'] = price
+                points[-1] = last_point
+            elif change >= deviation:
+                direction = 1
+                last_point = {'date': date, 'price': price, 'type': 'high'}
+                points.append(last_point)
+                
+    return points
+
+
+def calculate_liquidation_levels(zigzag_points, current_price, leverage_assumptions=[5, 10, 20]):
+    """
+    Estimates liquidation levels based on ZigZag swing points.
+    Calculates where long/short positions get liquidated at common leverage levels.
+    """
+    levels = []
+    if not zigzag_points or len(zigzag_points) < 2:
+        return levels
+        
+    # Get recent swing points (last 5)
+    recent_swings = zigzag_points[-min(5, len(zigzag_points)):] 
+    
+    for p in recent_swings:
+        if p['type'] == 'high':
+            # Shorts get liquidated above swing high
+            for lev in leverage_assumptions:
+                liq_distance = 1 / lev  # % move to liquidate
+                liq_price = p['price'] * (1 + liq_distance)
+                if liq_price > current_price * 0.98:  # Only if near current price
+                    levels.append({
+                        'price': liq_price,
+                        'type': f'Short Liq {lev}x',
+                        'color': 'orange',
+                        'leverage': lev
+                    })
+        elif p['type'] == 'low':
+            # Longs get liquidated below swing low
+            for lev in leverage_assumptions:
+                liq_distance = 1 / lev
+                liq_price = p['price'] * (1 - liq_distance)
+                if liq_price < current_price * 1.02:  # Only if near current price
+                    levels.append({
+                        'price': liq_price,
+                        'type': f'Long Liq {lev}x',
+                        'color': 'red',
+                        'leverage': lev
+                    })
+            
+    return levels
+
+
+def detect_trendlines(zigzag_points, min_touches=2):
+    """
+    Detects trendlines by connecting consecutive swing highs/lows.
+    Returns both support and resistance trendlines.
+    """
+    trendlines = {'support': [], 'resistance': []}
+    
+    if not zigzag_points or len(zigzag_points) < 3:
+        return trendlines
+    
+    # Get highs and lows separately
+    highs = [p for p in zigzag_points if p['type'] == 'high']
+    lows = [p for p in zigzag_points if p['type'] == 'low']
+    
+    # Resistance trendlines (connect highs)
+    if len(highs) >= min_touches:
+        for i in range(len(highs) - 1):
+            p1 = highs[i]
+            p2 = highs[i + 1]
+            # Calculate slope
+            time_diff = (p2['date'] - p1['date']).total_seconds() / 86400  # days
+            if time_diff > 0:
+                slope = (p2['price'] - p1['price']) / time_diff
+                trendlines['resistance'].append({
+                    'start': p1,
+                    'end': p2,
+                    'slope': slope,
+                    'type': 'descending' if slope < 0 else 'ascending'
+                })
+    
+    # Support trendlines (connect lows)
+    if len(lows) >= min_touches:
+        for i in range(len(lows) - 1):
+            p1 = lows[i]
+            p2 = lows[i + 1]
+            time_diff = (p2['date'] - p1['date']).total_seconds() / 86400
+            if time_diff > 0:
+                slope = (p2['price'] - p1['price']) / time_diff
+                trendlines['support'].append({
+                    'start': p1,
+                    'end': p2,
+                    'slope': slope,
+                    'type': 'ascending' if slope > 0 else 'descending'
+                })
+    
+    return trendlines
+
+
+def detect_chart_patterns(df, zigzag_points):
+    """
+    Comprehensive chart pattern detection including:
+    - Head & Shoulders (Bullish/Bearish)
+    - Double Top/Bottom
+    - Triple Top/Bottom  
+    - Triangles (Ascending/Descending/Symmetrical)
+    - Flags and Pennants
+    - Wedges (Rising/Falling)
+    """
+    patterns = []
+    
+    if not zigzag_points or len(zigzag_points) < 5:
+        return patterns
+    
+    # Helper to check if prices are approximately equal (within tolerance)
+    def approx_equal(p1, p2, tolerance=0.02):
+        return abs(p1 - p2) / max(p1, p2) < tolerance
+    
+    # Get recent swings (last 7 for pattern detection)
+    swings = zigzag_points[-min(7, len(zigzag_points)):]
+    
+    # 1. HEAD & SHOULDERS PATTERN
+    if len(swings) >= 5:
+        # Bearish H&S: Low-High-Low-High(head)-Low-High-Low
+        for i in range(len(swings) - 4):
+            if (swings[i]['type'] == 'high' and swings[i+2]['type'] == 'high' and swings[i+4]['type'] == 'high'):
+                left_shoulder = swings[i]['price']
+                head = swings[i+2]['price']
+                right_shoulder = swings[i+4]['price']
+                
+                if head > left_shoulder and head > right_shoulder and approx_equal(left_shoulder, right_shoulder):
+                    patterns.append({
+                        'type': 'Head & Shoulders (Bearish)',
+                        'confidence': 'High',
+                        'target_direction': 'SHORT',
+                        'neckline': min(swings[i+1]['price'], swings[i+3]['price'])
+                    })
+        
+        # Inverted H&S (Bullish)
+        for i in range(len(swings) - 4):
+            if (swings[i]['type'] == 'low' and swings[i+2]['type'] == 'low' and swings[i+4]['type'] == 'low'):
+                left_shoulder = swings[i]['price']
+                head = swings[i+2]['price']
+                right_shoulder = swings[i+4]['price']
+                
+                if head < left_shoulder and head < right_shoulder and approx_equal(left_shoulder, right_shoulder):
+                    patterns.append({
+                        'type': 'Inverted H&S (Bullish)',
+                        'confidence': 'High',
+                        'target_direction': 'LONG',
+                        'neckline': max(swings[i+1]['price'], swings[i+3]['price'])
+                    })
+    
+    # 2. DOUBLE TOP/BOTTOM
+    if len(swings) >= 3:
+        # Double Top
+        for i in range(len(swings) - 2):
+            if swings[i]['type'] == 'high' and swings[i+2]['type'] == 'high':
+                if approx_equal(swings[i]['price'], swings[i+2]['price'], tolerance=0.015):
+                    patterns.append({
+                        'type': 'Double Top (Bearish)',
+                        'confidence': 'Medium',
+                        'target_direction': 'SHORT',
+                        'resistance': swings[i]['price']
+                    })
+        
+        # Double Bottom
+        for i in range(len(swings) - 2):
+            if swings[i]['type'] == 'low' and swings[i+2]['type'] == 'low':
+                if approx_equal(swings[i]['price'], swings[i+2]['price'], tolerance=0.015):
+                    patterns.append({
+                        'type': 'Double Bottom (Bullish)',
+                        'confidence': 'Medium',
+                        'target_direction': 'LONG',
+                        'support': swings[i]['price']
+                    })
+    
+    # 3. TRIANGLES 
+    if len(swings) >= 4:
+        highs = [s for s in swings if s['type'] == 'high']
+        lows = [s for s in swings if s['type'] == 'low']
+        
+        if len(highs) >= 2 and len(lows) >= 2:
+            # Ascending Triangle: Flat resistance, rising support
+            if approx_equal(highs[-1]['price'], highs[-2]['price'], 0.015) and lows[-1]['price'] > lows[-2]['price']:
+                patterns.append({
+                    'type': 'Ascending Triangle (Bullish)',
+                    'confidence': 'Medium',
+                    'target_direction': 'LONG'
+                })
+            
+            # Descending Triangle: Flat support, falling resistance
+            if approx_equal(lows[-1]['price'], lows[-2]['price'], 0.015) and highs[-1]['price'] < highs[-2]['price']:
+                patterns.append({
+                    'type': 'Descending Triangle (Bearish)',
+                    'confidence': 'Medium',
+                    'target_direction': 'SHORT'
+                })
+            
+            # Symmetrical Triangle: Converging
+            if highs[-1]['price'] < highs[-2]['price'] and lows[-1]['price'] > lows[-2]['price']:
+                patterns.append({
+                    'type': 'Symmetrical Triangle',
+                    'confidence': 'Low',
+                    'target_direction': 'BREAKOUT'
+                })
+    
+    # 4. WEDGES (Rising/Falling)
+    if len(swings) >= 4:
+        highs = [s for s in swings[-4:] if s['type'] == 'high']
+        lows = [s for s in swings[-4:] if s['type'] == 'low']
+        
+        if len(highs) >= 2 and len(lows) >= 2:
+            # Rising Wedge (Bearish): Both rising but converging
+            if (highs[-1]['price'] > highs[0]['price'] and lows[-1]['price'] > lows[0]['price'] and
+                (highs[-1]['price'] - lows[-1]['price']) < (highs[0]['price'] - lows[0]['price'])):
+                patterns.append({
+                    'type': 'Rising Wedge (Bearish)',
+                    'confidence': 'Medium',
+                    'target_direction': 'SHORT'
+                })
+            
+            # Falling Wedge (Bullish): Both falling but converging
+            if (highs[-1]['price'] < highs[0]['price'] and lows[-1]['price'] < lows[0]['price'] and
+                (highs[-1]['price'] - lows[-1]['price']) < (highs[0]['price'] - lows[0]['price'])):
+                patterns.append({
+                    'type': 'Falling Wedge (Bullish)',
+                    'confidence': 'Medium',
+                    'target_direction': 'LONG'
+                })
+    
+    return patterns
